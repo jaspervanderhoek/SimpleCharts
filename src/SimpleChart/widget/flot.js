@@ -43,11 +43,17 @@ dojo.setObject("SimpleChart.widget.flot", {
 					borderWidth : 0,
 					hoverable : true,
 					clickable : true,
-					labelMargin : 20
+					labelMargin : 20,
+					backgroundColor: { colors: [ "#FFF", "#EEE" ] }
+				},
+				bars: { 
+					lineWidth: 0, 
+					fill: true,
+					fillColor: { colors: [ { opacity: 0.8 }, { opacity: 0.8 } ] }
 				},
 				xaxis : {
 					show : true,
-					ticks : this.showxticks ? (this.iscategories ? null : this.wwidth / 100) : 0,
+					ticks : this.showxticks ? null : 0,
 					tickFormatter : function(tick, axis) {
 						if( self.iscategories && !this.isdate) {
 							if( tick >= 0 && tick < self.categoriesArray.length ) {
@@ -71,7 +77,8 @@ dojo.setObject("SimpleChart.widget.flot", {
 					tickFormatter : function(val, axis) {
 						return dojo.number.round(val,2) + " " + self.yunit1;
 					}
-				},
+				},			  //light orange, light blue,    dark orange, blue-ish ,     blue-grey,    light green,  purple,         darkblue
+				colors : ["#FFB739",    "#0496da",  "#FA6121",   "#466289",  "#A0AEC1", "#36CAA1", "#796DDE", "#2d3e4e"],
 				legend : {
 					show : this.charttype != 'pie' && this.showlegend
 			}	};
