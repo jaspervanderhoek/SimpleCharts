@@ -103,12 +103,13 @@
 }
 
 .SimpleChartYAxis {
-	left: 10px !important;
-	top: 15px !important;
+	left: 0px !important;
+	top: 10px !important;
 }
 
 .SimpleChartYAxis2 {
-	top: 25px !important;
+    top: 10px !important;
+    right: 2px;
 }
 
 .SimpleChartFlotWrapperNode {

@@ -94,7 +94,16 @@ Note that all series should use a Category that correlate with eachother. Otherw
                         <attributeType name="String"/>
                     </attributeTypes>
                 </property>
-                      
+				<property key="seriescategorylabel" type="attribute" entityProperty="seriesentity" required="false" isPath="optional" pathType="reference">
+					<caption>Category (x) Label</caption> <category>Data source</category>
+					<description>The value which is shown on the X value of a point in the chart. 
+					</description>
+					<attributeTypes>
+						<attributeType name="Currency"/>
+						<attributeType name="Enum"/>
+						<attributeType name="String"/>
+					</attributeTypes>
+				</property>
                 <property key="seriesvalues" type="attribute" entityProperty="seriesentity" required="false" isPath="optional" pathType="referenceSet">
                     <!-- note that pathType reference or referenceSet is
                     indifferent for the widget, however the modeler does not
@@ -124,20 +133,12 @@ If not defined, the value '1' will be used. Note that an aggregate function is s
                     <caption>Aggregate function</caption>
                     <category>Data source</category>
                     <description>Defines how data is aggregated when multiple Y values are available for a single X value.
-
 Sum: Adds up the Y values and plot it on X.
-
 Count: counts the number of Y values available for a single point. This ignores the Y value, it does not matter if an Y value is selected.
-
 Avg/Max/Min: Takes the average/maximum/minimum of the availble Y values.
-
 Plot individual points: For each Y value a seperate 'column' appears.
-
 First only: Only take the first value available, ignore the others.
-
-Last only: Only take the last value available, ignore the others. Usefull
-to only display the 'current' state.
-
+Last only: Only take the last value available, ignore the others. Usefull to only display the 'current' state.
 Log of the Sum: First sums, that takes the Log of that value.                    
                 </description>
                 <enumerationValues>

@@ -81,6 +81,7 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
 	isdate: false, //use dates as x axis?
 	isLocalizedDate: true,
 	iscategories: false, //use categories as x axis
+	uselabel: false, //use categories as x axis
 	categoriesArray: [],
 	rangeNode: null,
 	refreshing: 0,
@@ -362,6 +363,18 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
                 };
                 serie.seriesconstraint += "[" + cat[0] + "/" + cat[1] + "]";
             }
+			
+            if( serie.seriescategorylabel != null && serie.seriescategorylabel != "" ) {
+				var catLabel = serie.seriescategorylabel.split("/");
+				if (catLabel.length == 1)
+					serie.schema.attributes.push(serie.seriescategorylabel);
+				else {
+					serie.schema.references[catLabel[0]] = {
+					  attributes : [catLabel[2]]
+					};
+					serie.seriesconstraint += "[" + catLabel[0] + "/" + catLabel[1] + "]";
+				}
+            }
 
             if (serie.seriesvalues) {
                 var path = serie.seriesvalues.split("/");
@@ -402,9 +415,13 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
                 serie.data = [];
                 var valueattr = serie.seriesvalues ? serie.seriesvalues.split("/") : null;
                 var labelattr = serie.seriescategory.split("/");
+				var displayattr = serie.seriescategorylabel.split("/");
+				
+                var rawdata = []; //[[xvalue, yvalue, originalobject, xDisplayValue]]
 
-                var rawdata = []; //[[xvalue, yvalue, originalobject]]
-
+				if( displayattr.length > 0 )
+					this.uselabel = true;
+				
                 //aggregate all data to the rawdata object
                 var len = objects.length;
                 for(var i = 0; i < len; i++) {
@@ -431,7 +448,7 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
                     //get the x value
                     var x;
                     if (labelattr.length == 1)
-                        x = this.dateRound(objects[i].getAttribute(serie.seriescategory));
+                        x = this.dateRound(objects[i].getAttribute(labelattr[0]));
                     else {
                         var sub = objects[i].getChild(labelattr[0]);
                         if (sub === null || sub._guid === 0)
@@ -439,16 +456,27 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
                         else 
 							x = this.dateRound(sub.getAttribute(labelattr[2]));
                     }
+					
+                    var xDisplay;
+                    if (displayattr.length == 1)
+                        xDisplay = objects[i].getAttribute(displayattr[0]);
+                    else {
+                        var sub = objects[i].getChild(displayattr[0]);
+                        if (sub == null || sub._guid == 0)
+                            xDisplay = "(undefined)"
+                        else 
+							xDisplay = sub.getAttribute(displayattr[2]);
+                    }
 
                     //get the y value
                     if (!valueattr) //not defined
-                      rawdata.push([x, 1, objects[i]]);
+                      rawdata.push([x, 1, objects[i], xDisplay]);
                     else if (valueattr.length == 1) //attr
-                      rawdata.push([x, parseFloat(objects[i].getAttribute(valueattr[0])), objects[i]]);
+                      rawdata.push([x, parseFloat(objects[i].getAttribute(valueattr[0])), objects[i], xDisplay]);
                     else { //reference
                       var subs = objects[i].getChildren(valueattr[0]);
                       for(var j = 0; j < subs.length; j++)
-                        rawdata.push([x, parseFloat(subs[j].getAttribute(valueattr[2])), objects[i]]);
+                        rawdata.push([x, parseFloat(subs[j].getAttribute(valueattr[2])), objects[i], xDisplay]);
                     }
                 }
 
@@ -476,8 +504,8 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
 							labelx = mx.parser.formatAttribute(sub, labelattr[2]);
                         }
 						
-						if( this.iscategories || this.isdate ) {
-							var catValue = (this.iscategories ? labelx : parseFloat(currentx));
+						if( this.iscategories || this.isdate || this.uselabel ) {
+							var catValue = ((this.uselabel && rawdata[i][3] != null) ? rawdata[i][3] : labelx); //(this.iscategories ? labelx : parseFloat(currentx));
 							var pos = jQuery.inArray( catValue, this.categoriesArray );
 							
 							if( pos < 0 ) {
@@ -485,7 +513,7 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
 								this.categoriesArray[pos] = catValue;
 							}
 							
-							if( this.charttype != 'pie' && !this.isdate ) {
+							if( this.charttype != 'pie' && !this.isdate && !this.uselabel ) {
 								currentx = pos;
 							}
 						}
@@ -493,7 +521,7 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
                         var newitem = {
                             index : this.iscategories ? currentx : serie.data.length,
                             origx : this.iscategories ? currentx : parseFloat(currentx),
-                            labelx : labelx,
+                            labelx : ( rawdata[i][3] != null ? rawdata[i][3] : labelx ),
                             guid : rawdata[i][2].getGUID(),
                             y : this.aggregate(serie.seriesaggregate, currenty)
                         };
@@ -593,7 +621,7 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
 			}
         }
         else if ( this.isdate ) {
-			this.categoriesArray.sort();
+			//this.categoriesArray.sort();
         }
     },
     

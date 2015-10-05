@@ -71,28 +71,6 @@
 	color:white;
 }
 
-.SimpleChartFlotTickLabel{
-	
-}
-
-.SimpleChartCaption {
-	font-size:large;
-	left:180px;
-	position:absolute;
-	top: 20px !important;
-}
-
-.SimpleChartXAxis {
-	font-size: 11px;
-}
-
-.SimpleChartYAxis {
-	left: 10px !important;
-	top: 25px !important;
-	font-weight: bold;
-	font-size: 11px;
-}
-
 .SimpleChartYAxis2 {
 	top: 25px !important;
 	font-weight:bold;
@@ -100,15 +78,6 @@
 }
 
 .SimpleChartFlotWrapperNode {
-}
-
-.SimpleChartFlotContainer {
-	padding: 46px 10px 10px;
-	position: relative;
-	outline-style:none;
-	border-width: 1px;
-	border-color: #aaa #ccc #ccc #ccc;
-	border-style: solid;
 }
 
 .SimpleChartFlotTooltip {

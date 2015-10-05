@@ -55,7 +55,7 @@ dojo.setObject("SimpleChart.widget.flot", {
 					show : true,
 					ticks : this.showxticks ? null : 0,
 					tickFormatter : function(tick, axis) {
-						if( self.iscategories && !this.isdate) {
+						if( self.iscategories && !self.isdate) {
 							if( tick >= 0 && tick < self.categoriesArray.length ) {
 								return self.categoriesArray[tick];
 							}
@@ -63,13 +63,18 @@ dojo.setObject("SimpleChart.widget.flot", {
 						
 						if (self.charttype == 'bar' || self.charttype == 'stackedbar' ) {
 							for(var i = 0; i < self.series.length; i++) {
-								if (tick < self.series[i].data.length && self.series[i].data[tick])
+								if( self.isdate && tick < self.categoriesArray.length ) 
+									return self.categoriesArray[tick];
+								else if (tick < self.series[i].data.length && self.series[i].data[tick])
 									return self.series[i].data[tick].labelx;
 							}
 							return "";
 						}
-						else
-							return self.getXLabelForValue(tick);
+						else if( self.uselabel ) {
+							if( self.uselabel && tick < self.categoriesArray.length ) 
+								return self.categoriesArray[tick];
+						}
+						return self.getXLabelForValue(tick);
 					}
 				},
 				yaxis : {
@@ -241,7 +246,7 @@ dojo.setObject("SimpleChart.widget.flot", {
 					else if (this.charttype == 'bar' ) { //give bars a small offset
 						var index = serie.data[j].index;
 						if( this.isdate) 
-							index = jQuery.inArray( serie.data[j].origx, this.categoriesArray );
+							index = jQuery.inArray( serie.data[j].labelx, this.categoriesArray );
 						
 						seriedata.push( [index + i / (this.series.length + 1), y]); 
 					}
