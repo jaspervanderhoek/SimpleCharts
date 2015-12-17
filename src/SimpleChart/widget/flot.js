@@ -71,9 +71,31 @@ dojo.setObject("SimpleChart.widget.flot", {
 							return "";
 						}
 						else if( self.uselabel ) {
-							if( self.uselabel && tick < self.categoriesArray.length ) 
+							if( self.isdate ) {
+								
+								if( self.categoriesArray[tick] != null )
+									return self.categoriesArray[tick];
+								else {
+									var diff, label;
+									
+									for( var cat in self.categoriesArray ) {
+										var curDiff = Math.abs( tick - cat );
+										console.info( tick, cat);
+
+										if( diff == null || curDiff < diff ) {
+											diff = curDiff;
+											label = self.categoriesArray[cat];
+										}
+									}
+									
+									if( label != null )
+										return label;
+								}
+							}
+							else if( self.uselabel && tick < self.categoriesArray.length ) 
 								return self.categoriesArray[tick];
 						}
+						
 						return self.getXLabelForValue(tick);
 					}
 				},
@@ -88,7 +110,7 @@ dojo.setObject("SimpleChart.widget.flot", {
 					show : this.charttype != 'pie' && this.showlegend
 			}	};
 			
-			if (this.isdate) {
+			if (this.isdate ) {
 				//options.xaxis.mode = "time";
 				var mintick = null;
 				switch(this.dateformat) {
@@ -112,7 +134,7 @@ dojo.setObject("SimpleChart.widget.flot", {
 				options.xaxis.minTickSize = [1, mintick];
 			}
 			//set ticksize to one for category based items
-			else if (this.iscategories)
+			else if (this.iscategories || this.uselabel)
 				options.xaxis.tickSize = 1;
 				
 			if (this.enablezoom) 
@@ -241,19 +263,26 @@ dojo.setObject("SimpleChart.widget.flot", {
 				var seriedata = [];
 				for(var j = 0; j < serie.data.length; j++) {
 					var y = serie.data[j].y;
+
 					if (this.charttype == 'pie') //pie's data is structered in another way
 						seriedata.push({ label : serie.data[j].labelx, data : y});
-					else if (this.charttype == 'bar' ) { //give bars a small offset
-						var index = serie.data[j].index;
-						if( this.isdate) 
-							index = jQuery.inArray( serie.data[j].labelx, this.categoriesArray );
+					else { 
+						var index = serie.data[j].origx;
 						
-						seriedata.push( [index + i / (this.series.length + 1), y]); 
+						if (this.charttype == 'bar' ) { //give bars a small offset
+							index = serie.data[j].index;
+							if( this.isdate) 
+								index = jQuery.inArray( serie.data[j].labelx, this.categoriesArray );
+							
+							index = index + i / (this.series.length + 1);
+						}
+						else if( this.uselabel && this.iscategories )
+							index = jQuery.inArray( serie.data[j].labelx, this.categoriesArray );
+						else if (this.charttype == 'stackedbar' ) 
+							index = serie.data[j].index;
+						
+						seriedata.push( [index, y]); 
 					}
-					else if (this.charttype == 'stackedbar' ) 
-						seriedata.push([serie.data[j].index,y]);
-					else  
-						seriedata.push([serie.data[j].origx,y]);
 				}
 				
 				if (this.charttype == 'pie')

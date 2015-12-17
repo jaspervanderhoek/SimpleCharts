@@ -196,7 +196,7 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
                 mx.processor.subscribeToGUID(this, this.dataobject);
 		}
 		else
-			logger.warn(this.id + ".applyContext received empty context");
+			this.showWarning(this.id + ".applyContext received empty context");
 		callback && callback();
 	},
     
@@ -262,7 +262,7 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
                 } else if (entityPath.length == 2) {
                     entityName = entityPath[1];
                 } else {
-                    console.error(this.id + " Unsupported Dynamic serie configuration for serie: " + serieIndex + " the entity path is incorrect ");
+                    this.showError(" Unsupported Dynamic serie configuration for serie: " + serieIndex + " the entity path is incorrect ");
                 }
                 this.serieConfigurations[serieIndex].loaded = false;
 
@@ -307,7 +307,7 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
 
             this.serieConfigurations[serieIndex].loaded = true;
         } catch (e) {
-            console.error(this.id + " Error while retrieving Dynamic Series for serie index: " + serieIndex + ", error: " + e, e);
+            this.showError(" Error while retrieving Dynamic Series for serie index: " + serieIndex + ", error: " + e, e);
         }
     },
     
@@ -358,9 +358,11 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
             if (cat.length == 1)
                 serie.schema.attributes.push(serie.seriescategory);
             else {
-                serie.schema.references[cat[0]] = {
-                    attributes: [cat[2]]
-                };
+            	if( serie.schema.references[cat[0]] == null )
+            		serie.schema.references[cat[0]] = { attributes: [cat[2]] };
+            	else
+					serie.schema.references[cat[0]].attributes.push( cat[2] );
+				
                 serie.seriesconstraint += "[" + cat[0] + "/" + cat[1] + "]";
             }
 			
@@ -369,9 +371,11 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
 				if (catLabel.length == 1)
 					serie.schema.attributes.push(serie.seriescategorylabel);
 				else {
-					serie.schema.references[catLabel[0]] = {
-					  attributes : [catLabel[2]]
-					};
+					if( serie.schema.references[catLabel[0]] == null )
+						serie.schema.references[catLabel[0]] = { attributes: [catLabel[2]] };
+					else
+						serie.schema.references[catLabel[0]].attributes.push( catLabel[2] );
+					
 					serie.seriesconstraint += "[" + catLabel[0] + "/" + catLabel[1] + "]";
 				}
             }
@@ -380,10 +384,12 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
                 var path = serie.seriesvalues.split("/");
                 if (path.length == 1)
                     serie.schema.attributes.push(serie.seriesvalues);
-                else
-                    serie.schema.references[path[0]] = {
-                        attributes: [path[2]]
-                    };
+                else {
+					if( serie.schema.references[path[0]] == null )
+						serie.schema.references[path[0]] = { attributes: [path[2]] };
+					else
+						serie.schema.references[path[0]].attributes.push( path[2] );
+				}
             }
         }
 
@@ -436,6 +442,14 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
 									this.isLocalizedDate = mdOwner.isLocalizedDate(labelattr[labelattr.length -1]);
 									
 								this.iscategories = !this.isdate && !mdOwner.isNumber(labelattr[labelattr.length -1]);
+								
+								if( this.charttype == 'bar' || this.charttype == 'stackedbar' )
+									this.iscategories = true;
+								
+								if( this.iscategories && this.uselinearscaling ) {
+									this.uselinearscaling = false;
+									this.showWarning( "Linear scaling is not supported in combination with categories, linear scaling is only possible for dates and numbers" );
+								}
 							}
 						}
 						catch(e) {
@@ -445,19 +459,7 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
 						}
                     }
 
-                    //get the x value
-                    var x;
-                    if (labelattr.length == 1)
-                        x = this.dateRound(objects[i].getAttribute(labelattr[0]));
-                    else {
-                        var sub = objects[i].getChild(labelattr[0]);
-                        if (sub === null || sub._guid === 0)
-                            x = "(undefined)";
-                        else 
-							x = this.dateRound(sub.getAttribute(labelattr[2]));
-                    }
-					
-                    var xDisplay;
+					var xDisplay;
                     if (displayattr.length == 1)
                         xDisplay = objects[i].getAttribute(displayattr[0]);
                     else {
@@ -467,6 +469,23 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
                         else 
 							xDisplay = sub.getAttribute(displayattr[2]);
                     }
+					
+/*					if( xDisplay != null ) {
+						x = xDisplay;
+					} 
+					else {*/
+						//get the x value
+						var x;
+						if (labelattr.length == 1)
+							x = this.dateRound(objects[i].getAttribute(labelattr[0]));
+						else {
+							var sub = objects[i].getChild(labelattr[0]);
+							if (sub === null || sub._guid === 0)
+								x = "(undefined)";
+							else 
+								x = this.dateRound(sub.getAttribute(labelattr[2]));
+						}
+//					}
 
                     //get the y value
                     if (!valueattr) //not defined
@@ -492,9 +511,13 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
                     else {
                         //calculate the label, which, can be a referred attr...
                         var labelx = "";
-                        if (!this.iscategories || this.isdate)
+						
+						//For dates, and numbers get the formatted value
+                        if (this.isdate || !this.iscategories)
                           labelx = this.getFormattedXValue(currentx);
-                        else if (labelattr.length == 1)
+                        
+						//In case of enumerations we need to format the attribute value
+						else if (labelattr.length == 1)
                           labelx = mx.parser.formatAttribute(rawdata[i][2], labelattr[0]);
                         else {
                           var sub = rawdata[i][2].getChild(labelattr[0]);
@@ -503,20 +526,23 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
                           else 
 							labelx = mx.parser.formatAttribute(sub, labelattr[2]);
                         }
-						
-						if( this.iscategories || this.isdate || this.uselabel ) {
-							var catValue = ((this.uselabel && rawdata[i][3] != null) ? rawdata[i][3] : labelx); //(this.iscategories ? labelx : parseFloat(currentx));
+
+
+						var catValue = labelx;
+						if( this.uselabel && rawdata[i][3] != null) 
+							catValue = rawdata[i][3];     //(this.iscategories ? labelx : parseFloat(currentx));
+
+						if( this.iscategories ) {
 							var pos = jQuery.inArray( catValue, this.categoriesArray );
-							
+
 							if( pos < 0 ) {
 								pos = this.categoriesArray.length;
-								this.categoriesArray[pos] = catValue;
 							}
-							
-							if( this.charttype != 'pie' && !this.isdate && !this.uselabel ) {
+							if( this.charttype != 'pie' ) {
 								currentx = pos;
 							}
 						}
+						this.categoriesArray[currentx] = catValue;
 						
                         var newitem = {
                             index : this.iscategories ? currentx : serie.data.length,
@@ -549,7 +575,7 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
 				this.sortAndRenderSeries();
             }
             catch(e) {
-                console.error(this.id + " Error while rendering chart data " + e, e);
+                this.showError(" Error while rendering chart data " + e, e);
             }
         } finally {
 			this.refreshing--;
@@ -614,7 +640,7 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
 						targetmap[val].index = pos; //update index!
 					}
 					else 
-						console.error("Invalid configuration for chart: (" + this.id + "), unable to find " + targetmap[val].labelx + " in the categories array");
+						this.showError("Invalid configuration for chart: (" + this.id + "), unable to find " + targetmap[val].labelx + " in the categories array");
 				}
 
 				serie.data = result;
@@ -697,12 +723,12 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
 	showError : function (msg) {
 		dojo.empty(this.domNode);
 		dojo.html.set(this.domNode, "SimpleChart error: " + msg);
-		console.error("SimpleChart error: " + msg);
+		console.error(this.id + "SimpleChart error: " + msg);
 		return null;
 	},
 	
 	showWarning : function (msg) {
-		console.warn(msg);
+		console.warn(this.id + msg);
 	},
 	
 		//////// SECTION LABEL FORMATTING
@@ -822,27 +848,52 @@ mendix.widget.declare('SimpleChart.widget.SimpleChart', {
 		var d = new Date(x);
 		if( isNaN(d) )
 			return x;
-			
-		switch(this.dateaggregation) {
-			case 'year':
-				d.setMonth(0);
-			case 'month':
-				d.setDate(1);
-			case 'day':
-				d.setHours(0);
-			case 'hour':
-				d.setMinutes(0);
-				d.setSeconds(0);
-				d.setMilliseconds(0);
-				break;
-			case 'week':
-				var distance = 1 - d.getDay();
-				d.setDate(d.getDate() + distance);
-				d.setHours(0);
-				d.setMinutes(0);
-				d.setSeconds(0);
-				d.setMilliseconds(0);
-				break;
+		
+		if( this.isLocalizedDate ) {
+			switch(this.dateaggregation) {
+				case 'year':
+					d.setMonth(0);
+				case 'month':
+					d.setDate(1);
+				case 'day':
+					d.setHours(0);
+				case 'hour':
+					d.setMinutes(0);
+					d.setSeconds(0);
+					d.setMilliseconds(0);
+					break;
+				case 'week':
+					var distance = 1 - d.getDay();
+					d.setDate(d.getDate() + distance);
+					d.setHours(0);
+					d.setMinutes(0);
+					d.setSeconds(0);
+					d.setMilliseconds(0);
+					break;
+			}
+		}
+		else {
+			switch(this.dateaggregation) {
+				case 'year':
+					d.setUTCMonth(0);
+				case 'month':
+					d.setUTCDate(1);
+				case 'day':
+					d.setUTCHours(0);
+				case 'hour':
+					d.setUTCMinutes(0);
+					d.setUTCSeconds(0);
+					d.setUTCMilliseconds(0);
+					break;
+				case 'week':
+					var distance = 1 - d.getDay();
+					d.setUTCDate(d.getDate() + distance);
+					d.setUTCHours(0);
+					d.setUTCMinutes(0);
+					d.setUTCSeconds(0);
+					d.setUTCMilliseconds(0);
+					break;
+			}
 		}
 
 		return d.getTime();

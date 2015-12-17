@@ -279,7 +279,7 @@ The aggregation function of the individual series is applied. Usually 'count' or
         <property key="yunit2" type="string" required="false">
             <caption>Secondary Y Axis unit</caption>
             <category>Chart Y Axis</category>
-            <description>The unit of the first Y axis, for example: 'min.' or 'age'</description>
+            <description>The unit of the secondary Y axis, for example: 'min.' or 'age'</description>
         </property>
         <property key="showyticks" type="boolean" defaultValue="true">
             <caption>Show Y axis ticks</caption>
